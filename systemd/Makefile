@@ -1,14 +1,13 @@
-ifeq ($(origin VERSION), undefined)
-VERSION := $(shell git describe --tags --always)
-endif
+VERSION ?= $(shell cat VERSION)
 
 IMG_REPO ?= jieyu
+IMG_NAME ?= systemd
 IMG_TAG ?= $(VERSION)
 
 all: build
 
 build:
-	docker build -t $(IMG_REPO)/systemd:$(IMG_TAG) .
+	docker build -t $(IMG_REPO)/$(IMG_NAME):$(IMG_TAG) .
 
 push:
-	docker push $(IMG_REPO)/systemd:$(IMG_TAG)
+	docker push $(IMG_REPO)/$(IMG_NAME):$(IMG_TAG)
