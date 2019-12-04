@@ -1,0 +1,45 @@
+FROM debian:buster
+
+MAINTAINER Jie Yu <yujie.jay@gmail.com>
+
+# Higher version of docker sets up iptable rules differently and
+# causes a packet coming from the container not hitting the post
+# routing rules (for masq), thus having no internet access. The actual
+# root cause is still a mystery :( My guess is that some iptables
+# commands are not supported in lower versions of kernel.
+ARG DOCKER_VERSION=5:18.09.3~3-0~debian-buster
+
+# Install docker, make, git, kubectl, helm
+RUN apt-get update && \
+    apt-get install --no-install-recommends -y \
+      apt-transport-https \
+      ca-certificates \
+      gnupg2 \
+      curl \
+      tini \
+      git \
+      make \
+      kmod \
+      procps && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add - && \
+    echo "deb [arch=amd64] https://download.docker.com/linux/debian buster stable" | tee /etc/apt/sources.list.d/docker.list && \
+    apt-get update && \
+    apt-get install --no-install-recommends -y \
+      docker-ce=${DOCKER_VERSION} && \
+    apt-get autoclean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set up subuid/subgid so that "--userns-remap=default" works
+# out-of-the-box.
+RUN set -x && \
+    addgroup --system dockremap && \
+    adduser --system --ingroup dockremap dockremap && \
+    echo 'dockremap:165536:65536' >> /etc/subuid && \
+    echo 'dockremap:165536:65536' >> /etc/subgid
+
+VOLUME /var/lib/docker
+EXPOSE 2375 2376
+ENV container docker
+
+COPY entrypoint.sh /entrypoint.sh
+ENTRYPOINT ["/usr/bin/tini", "--", "/entrypoint.sh"]
