@@ -56,7 +56,7 @@ cleanup() {
 
 dockerd \
   --cgroup-parent="${CGROUP_PARENT}" \
-  --bip="${DOCKERD_BIP:-172.17.1.1/16}" \
+  --bip="${DOCKERD_BIP:-172.17.1.1/24}" \
   --mtu="${DOCKERD_MTU:-1400}" &
 
 trap cleanup EXIT
