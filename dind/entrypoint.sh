@@ -45,13 +45,11 @@ else
   # current cgroup to the root of the cgroup subsystem. For instance:
   #   /sys/fs/cgroup/memory/docker/<cid> -> /sys/fs/cgroup/memory
   #
-  # This will confuse Kubelet and cadvisor and will dump the following
-  # error messages in kubelet log:
-  #   `summary_sys_containers.go:47] Failed to get system container stats for ".../kubelet.service"`
-  #
-  # This is because `/proc/<pid>/cgroup` is not affected by the bind
-  # mount. The following is a workaround to recreate the original
-  # cgroup environment by doing another bind mount for each subsystem.
+  # This will confuse some system software that manipulate cgroups
+  # (e.g., kubelet/cadvisor, etc.) sometimes because
+  # `/proc/<pid>/cgroup` is not affected by the bind mount. The
+  # following is a workaround to recreate the original cgroup
+  # environment by doing another bind mount for each subsystem.
   MOUNT_TABLE=$(cat /proc/self/mountinfo)
   DOCKER_CGROUP_MOUNTS=$(echo "${MOUNT_TABLE}" | grep /sys/fs/cgroup | grep docker)
   DOCKER_CGROUP=$(echo "${DOCKER_CGROUP_MOUNTS}" | head -n 1 | cut -d' ' -f 4)
