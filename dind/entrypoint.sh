@@ -18,20 +18,40 @@ if ! mountpoint -q /tmp; then
 	mount -t tmpfs none /tmp
 fi
 
-# Determine cgroup parent for dockerd.
-if [ -f /.dockerenv ]; then
+# Check cgroupfs.
+# TODO(jieyu): Verify the filesystem.
+if [ ! -d /sys/fs/cgroup/ ]; then
+  echo >&2 'Cgroupfs is not mounted'
+  exit 1
+fi
+
+# Determine cgroup parent for docker daemon.
+# We need to make sure cgroups created by the docker daemon do not
+# interfere with other cgroups on the host, and do not leak after this
+# container is terminated.
+if [ -f /sys/fs/cgroup/systemd/release_agent ]; then
+  # This means the user has bind mounted host /sys/fs/cgroup to the
+  # same location in the container (e.g., using the following docker
+  # run flags: `-v /sys/fs/cgroup:/sys/fs/cgroup`). In this case, we
+  # need to make sure the docker daemon in the container does not
+  # pollute the host cgroups hierarchy.
+  # Note that `release_agent` file is only created at the root of a
+  # cgroup hierarchy.
+  CGROUP_PARENT="$(grep systemd /proc/self/cgroup | cut -d: -f3)/docker"
+else
   CGROUP_PARENT="/docker"
 
   # For each cgroup subsystem, Docker does a bind mount from the
   # current cgroup to the root of the cgroup subsystem. For instance:
   #   /sys/fs/cgroup/memory/docker/<cid> -> /sys/fs/cgroup/memory
   #
-  # This will confuse Kubelet because it relies on proc file
-  # '/proc/<pid>/cgroup` to determine the cgroup of a given process,
-  # and this proc file is not affected by the bind mount.
+  # This will confuse Kubelet and cadvisor and will dump the following
+  # error messages in kubelet log:
+  #   `summary_sys_containers.go:47] Failed to get system container stats for ".../kubelet.service"`
   #
-  # The following is a workaround to recreate the original cgroup
-  # environment by doing another bind mount for each subsystem.
+  # This is because `/proc/<pid>/cgroup` is not affected by the bind
+  # mount. The following is a workaround to recreate the original
+  # cgroup environment by doing another bind mount for each subsystem.
   MOUNT_TABLE=$(cat /proc/self/mountinfo)
   DOCKER_CGROUP_MOUNTS=$(echo "${MOUNT_TABLE}" | grep /sys/fs/cgroup | grep docker)
   DOCKER_CGROUP=$(echo "${DOCKER_CGROUP_MOUNTS}" | head -n 1 | cut -d' ' -f 4)
@@ -42,15 +62,11 @@ if [ -f /.dockerenv ]; then
     mkdir -p "${SUBSYSTEM}${DOCKER_CGROUP}"
     mount --bind "${SUBSYSTEM}" "${SUBSYSTEM}${DOCKER_CGROUP}"
   done
-else
-  # Note: this assumes /sys/fs/cgroup is bind mounted from the host.
-  # For instance, containerd does not mount cgroups.
-  CGROUP_PARENT="$(grep systemd /proc/self/cgroup | cut -d: -f3)/docker"
 fi
 
 cleanup() {
     set +e
-    docker ps -a -q | xargs -r docker stop
+    docker ps -aq | xargs -r docker stop
     pkill dockerd
 }
 
