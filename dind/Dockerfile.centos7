@@ -15,7 +15,6 @@ RUN yum update -y && \
       yum-utils \
       device-mapper-persistent-data \
       lvm2 \
-      tini \
       git \
       make \
       curl && \
@@ -26,6 +25,9 @@ RUN yum update -y && \
       docker-ce-cli-${DOCKER_VERSION} \
       containerd.io && \
     yum clean all
+
+ADD https://github.com/krallin/tini/releases/download/v0.18.0/tini /usr/bin/tini
+RUN chmod +x /usr/bin/tini
 
 # Set up subuid/subgid so that "--userns-remap=default" works
 # out-of-the-box.
