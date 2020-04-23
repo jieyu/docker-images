@@ -62,18 +62,10 @@ else
   done
 fi
 
-cleanup() {
-    set +e
-    docker ps -aq | xargs -r docker stop
-    pkill dockerd
-}
-
 dockerd \
   --cgroup-parent="${CGROUP_PARENT}" \
   --bip="${DOCKERD_BIP:-172.17.1.1/24}" \
   --mtu="${DOCKERD_MTU:-1400}" &
-
-trap cleanup EXIT
 
 # Wait until dockerd is ready.
 until docker ps >/dev/null 2>&1
@@ -82,4 +74,4 @@ do
   sleep 1
 done
 
-"$@"
+exec "$@"
