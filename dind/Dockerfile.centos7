@@ -31,6 +31,7 @@ RUN set -x && \
     echo 'dockremap:165536:65536' >> /etc/subgid
 
 VOLUME /var/lib/docker
+VOLUME /var/log/docker
 EXPOSE 2375 2376
 ENV container docker
 
