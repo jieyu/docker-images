@@ -50,15 +50,13 @@ else
   # `/proc/<pid>/cgroup` is not affected by the bind mount. The
   # following is a workaround to recreate the original cgroup
   # environment by doing another bind mount for each subsystem.
-  MOUNT_TABLE=$(cat /proc/self/mountinfo)
-  DOCKER_CGROUP_MOUNTS=$(echo "${MOUNT_TABLE}" | grep /sys/fs/cgroup | grep docker)
-  DOCKER_CGROUP=$(echo "${DOCKER_CGROUP_MOUNTS}" | head -n 1 | cut -d' ' -f 4)
-  CGROUP_SUBSYSTEMS=$(echo "${DOCKER_CGROUP_MOUNTS}" | cut -d' ' -f 5)
+  CURRENT_CGROUP=$(grep systemd /proc/self/cgroup | cut -d: -f3)
+  CGROUP_SUBSYSTEMS=$(findmnt -lun -o source,target -t cgroup | grep "${CURRENT_CGROUP}" | awk '{print $2}')
 
   echo "${CGROUP_SUBSYSTEMS}" |
   while IFS= read -r SUBSYSTEM; do
-    mkdir -p "${SUBSYSTEM}${DOCKER_CGROUP}"
-    mount --bind "${SUBSYSTEM}" "${SUBSYSTEM}${DOCKER_CGROUP}"
+    mkdir -p "${SUBSYSTEM}${CURRENT_CGROUP}"
+    mount --bind "${SUBSYSTEM}" "${SUBSYSTEM}${CURRENT_CGROUP}"
   done
 fi
 
