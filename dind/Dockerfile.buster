@@ -2,13 +2,6 @@ FROM debian:buster
 
 MAINTAINER Jie Yu <yujie.jay@gmail.com>
 
-# Higher version of docker sets up iptable rules differently and
-# causes a packet coming from the container not hitting the post
-# routing rules (for masq), thus having no internet access. The actual
-# root cause is still a mystery :( My guess is that some iptables
-# commands are not supported in lower versions of kernel.
-ARG DOCKER_VERSION=5:18.09.3~3-0~debian-buster
-
 # Install docker, make, git, kubectl, helm
 RUN apt-get update && \
     apt-get install --no-install-recommends -y \
@@ -24,10 +17,16 @@ RUN apt-get update && \
     curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add - && \
     echo "deb [arch=amd64] https://download.docker.com/linux/debian buster stable" | tee /etc/apt/sources.list.d/docker.list && \
     apt-get update && \
-    apt-get install --no-install-recommends -y \
-      docker-ce=${DOCKER_VERSION} && \
+    apt-get install --no-install-recommends -y docker-ce && \
     apt-get autoclean && \
     rm -rf /var/lib/apt/lists/*
+
+# Switch to use iptables instead of nftables (to match the CI hosts)
+# TODO use some kind of runtime auto-detection instead if/when
+# nftables is supported (https://github.com/moby/moby/issues/26824)
+RUN update-alternatives --set iptables  /usr/sbin/iptables-legacy || true && \
+    update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy || true && \
+    update-alternatives --set arptables /usr/sbin/arptables-legacy || true
 
 # Set up subuid/subgid so that "--userns-remap=default" works
 # out-of-the-box.

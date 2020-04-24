@@ -65,7 +65,8 @@ fi
 dockerd \
   --cgroup-parent="${CGROUP_PARENT}" \
   --bip="${DOCKERD_BIP:-172.17.1.1/24}" \
-  --mtu="${DOCKERD_MTU:-1400}" &
+  --mtu="${DOCKERD_MTU:-1400}" \
+  ${DOCKER_ARGS:-} &
 
 # Wait until dockerd is ready.
 until docker ps >/dev/null 2>&1
