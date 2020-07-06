@@ -14,10 +14,10 @@ mount --make-rprivate /sys/fs/cgroup
 echo "${CGROUP_SUBSYSTEMS}" |
 while IFS= read -r SUBSYSTEM; do
   # This is because we set Kubelet's cgroup-root to `/kubelet` by
-	# default. We have to do that because otherwise, it'll collide
-	# with the cgroups used by the Kubelet running on the host if we
-	# run Konvoy docker cluster within a Kubernetes pod, resulting
-	# random processes to be killed.
+  # default. We have to do that because otherwise, it'll collide
+  # with the cgroups used by the Kubelet running on the host if we
+  # run Konvoy docker cluster within a Kubernetes pod, resulting
+  # random processes to be killed.
   mkdir -p "${SUBSYSTEM}/kubelet"
   if [ "${SUBSYSTEM}" == "/sys/fs/cgroup/cpuset" ]; then
     # This is needed. Otherwise, assigning process to the cgroup
