@@ -37,9 +37,9 @@ if [ -f /sys/fs/cgroup/systemd/release_agent ]; then
   # pollute the host cgroups hierarchy.
   # Note that `release_agent` file is only created at the root of a
   # cgroup hierarchy.
-  CGROUP_PARENT="$(grep systemd /proc/self/cgroup | cut -d: -f3)/docker"
+  CGROUP_PARENT="$(grep systemd /proc/self/cgroup | cut -d: -f3)/docker-${HOSTNAME}"
 else
-  CGROUP_PARENT="/docker"
+  CGROUP_PARENT="/docker-${HOSTNAME}"
 
   # For each cgroup subsystem, Docker does a bind mount from the
   # current cgroup to the root of the cgroup subsystem. For instance:
